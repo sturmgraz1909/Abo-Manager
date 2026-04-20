@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abo-Manager · GUEKO</title>
+<meta name="theme-color" content="#0f1117">
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; padding: 20px; min-height: 100vh; }
+  h1 { font-size: 1.3rem; font-weight: 700; color: #fff; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .subtitle { font-size: 0.78rem; color: #475569; margin-bottom: 20px; }
+  .summary { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .card { background: #1e2330; border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 130px; }
+  .card .label { font-size: 0.72rem; color: #94a3b8; margin-bottom: 3px; }
+  .card .value { font-size: 1.35rem; font-weight: 700; color: #38bdf8; }
+  .card .value.red { color: #f87171; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 780px; }
+  thead th { background: #1a2035; color: #64748b; text-align: left; padding: 9px 10px; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  tbody tr { border-bottom: 1px solid #1a2035; }
+  tbody tr:hover { background: #161d2e; }
+  tbody tr.gekuendigt-row { opacity: 0.6; }
+  tbody tr.gekuendigt-row td.name-cell { text-decoration: line-through; color: #475569; }
+  td { padding: 9px 10px; vertical-align: middle; }
+  .name-cell { font-weight: 600; color: #f1f5f9; }
+  .kat-cell { font-size: 0.75rem; color: #64748b; }
+  .preis-cell { font-weight: 700; white-space: nowrap; }
+  .sub-preis { font-size: 0.7rem; color: #475569; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; }
+  .aktiv { background: #14532d; color: #4ade80; }
+  .inaktiv { background: #3f3f46; color: #a1a1aa; }
+  .monatlich { background: #3b1f5e; color: #c084fc; }
+  .jaehrlich { background: #1e3a5f; color: #60a5fa; }
+  .enddatum-cell { font-size: 0.8rem; white-space: nowrap; }
+  .bald { color: #f59e0b; font-weight: 700; }
+  .abgelaufen { color: #ef4444; font-weight: 700; }
+  .check-cell { text-align: center; }
+  .check-cell input[type=checkbox] { width: 17px; height: 17px; cursor: pointer; accent-color: #ef4444; }
+  .notiz-cell { font-size: 0.75rem; color: #64748b; max-width: 160px; }
+  .icon-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 2px 5px; border-radius: 5px; }
+  .icon-btn:hover { background: #1e2330; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #1e2330; border-radius: 14px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .modal h2 { font-size: 1rem; font-weight: 700; margin-bottom: 18px; color: #f1f5f9; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 0.73rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  input, select, textarea { background: #0f1117; border: 1px solid #334155; color: #e2e8f0; border-radius: 7px; padding: 7px 10px; font-size: 0.84rem; width: 100%; outline: none; }
+  input:focus, select:focus { border-color: #3b82f6; }
+  input[type=date] { color-scheme: dark; }
+  textarea { resize: vertical; min-height: 56px; font-family: inherit; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+  .btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.84rem; font-weight: 600; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-ghost { background: #334155; color: #e2e8f0; }
+  .btn-ghost:hover { background: #475569; }
+  .fab { position: fixed; bottom: 28px; right: 28px; background: #2563eb; color: #fff; border: none; border-radius: 50%; width: 52px; height: 52px; font-size: 1.6rem; cursor: pointer; box-shadow: 0 4px 20px rgba(37,99,235,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .fab:hover { background: #1d4ed8; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .filter-btn { background: #1e2330; border: 1px solid #334155; color: #94a3b8; border-radius: 7px; padding: 5px 13px; font-size: 0.78rem; cursor: pointer; }
+  .filter-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .search-input { background: #1e2330; border: 1px solid #334155; color: #e2e8f0; border-radius: 7px; padding: 5px 12px; font-size: 0.82rem; outline: none; min-width: 160px; }
+  .search-input:focus { border-color: #3b82f6; }
+  .status-bar { font-size: 0.72rem; color: #475569; margin-top: 16px; text-align: right; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📋 Abo-Manager</h1>
+</div>
+<p class="subtitle" id="subtitle"></p>
+<div class="summary" id="summary"></div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="setFilter('alle',this)">Alle</button>
+  <button class="filter-btn" onclick="setFilter('aktiv',this)">Aktiv</button>
+  <button class="filter-btn" onclick="setFilter('inaktiv',this)">Inaktiv</button>
+  <button class="filter-btn" onclick="setFilter('gekuendigt',this)">Gekündigt</button>
+  <input class="search-input" id="search" placeholder="🔍 Suchen…" oninput="render()" />
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Dienst</th><th>Kategorie</th><th>Preis</th><th>Zyklus</th>
+      <th>Status</th><th>Enddatum</th><th>Gekündigt</th><th>Notiz</th><th></th>
+    </tr>
+  </thead>
+  <tbody id="abo-body"></tbody>
+</table>
+</div>
+<p class="status-bar" id="status-bar"></p>
+
+<button class="fab" onclick="openModal()" title="Neues Abo">＋</button>
+
+<div class="modal-bg" id="modal-bg" onclick="closeBg(event)">
+  <div class="modal">
+    <h2 id="modal-title">Neues Abo</h2>
+    <div class="form-grid">
+      <div class="form-group full"><label>Dienst *</label><input id="f-name" placeholder="z.B. Spotify" /></div>
+      <div class="form-group"><label>Kategorie</label><input id="f-kat" placeholder="z.B. Musik" /></div>
+      <div class="form-group"><label>Preis (€)</label><input id="f-preis" type="number" step="0.01" /></div>
+      <div class="form-group"><label>Zyklus</label>
+        <select id="f-zyklus"><option value="monatlich">monatlich</option><option value="jährlich">jährlich</option><option value="einmalig">einmalig</option></select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="f-status"><option value="aktiv">aktiv</option><option value="inaktiv">inaktiv</option></select>
+      </div>
+      <div class="form-group"><label>Enddatum</label><input id="f-enddatum" type="date" /></div>
+      <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;justify-content:flex-start;padding-top:18px;">
+        <input id="f-gekuendigt" type="checkbox" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0;" />
+        <label style="text-transform:none;font-size:0.84rem;">Gekündigt</label>
+      </div>
+      <div class="form-group full"><label>Notiz</label><textarea id="f-notiz" placeholder="Optionale Anmerkungen…"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-danger" id="delete-btn" style="display:none" onclick="deleteEntry()">Löschen</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'gueko-abos-v1';
+let abos = [], editIdx = null, activeFilter = 'alle';
+
+const defaults = [
+  { name:"Spotify", kat:"Musik / Entertainment", preis:11.99, zyklus:"monatlich", status:"aktiv", enddatum:"", gekuendigt:false, notiz:"Premium" },
+  { name:"Claude (Anthropic)", kat:"KI / Produktivität", preis:18.00, zyklus:"monatlich", status:"aktiv", enddatum:"", gekuendigt:false, notiz:"Pro-Plan" },
+  { name:"Gemini Advanced", kat:"KI / Produktivität", preis:21.99, zyklus:"monatlich", status:"aktiv", enddatum:"", gekuendigt:false, notiz:"Google One AI" },
+  { name:"Canva Pro", kat:"Design / Grafik", preis:14.99, zyklus:"monatlich", status:"aktiv", enddatum:"", gekuendigt:false, notiz:"Trading Radar Austria" },
+  { name:"stock3", kat:"Finanzen / Analyse", preis:0, zyklus:"monatlich", status:"aktiv", enddatum:"", gekuendigt:false, notiz:"Preis eintragen" },
+  { name:"flatex", kat:"Broker / Trading", preis:0, zyklus:"monatlich", status:"aktiv", enddatum:"", gekuendigt:false, notiz:"Depot 31052037780" },
+];
+
+function load() {
+  try { abos = JSON.parse(localStorage.getItem(KEY)) || defaults; }
+  catch { abos = defaults; }
+  const now = new Date();
+  document.getElementById('subtitle').textContent =
+    `Stand: ${now.toLocaleDateString('de-AT',{day:'2-digit',month:'long',year:'numeric'})} · Günter Kohlhofer · Daten lokal gespeichert`;
+  render();
+}
+
+function save() { localStorage.setItem(KEY, JSON.stringify(abos)); }
+
+function dKlasse(d) {
+  if (!d) return '';
+  const h = new Date(); h.setHours(0,0,0,0);
+  const diff = (new Date(d) - h) / 86400000;
+  return diff < 0 ? 'abgelaufen' : diff <= 30 ? 'bald' : '';
+}
+
+function fmtDatum(d) {
+  if (!d) return '<span style="color:#334155">—</span>';
+  const [y,m,t] = d.split('-'); return `${t}.${m}.${y}`;
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function render() {
+  const q = (document.getElementById('search').value||'').toLowerCase();
+  const tbody = document.getElementById('abo-body');
+  tbody.innerHTML = '';
+  let totalM = 0, aktiv = 0, gek = 0;
+
+  abos.forEach((a, i) => {
+    const mp = a.zyklus === 'jährlich' ? a.preis/12 : a.preis;
+    if (a.status==='aktiv' && !a.gekuendigt) { totalM += mp; aktiv++; }
+    if (a.gekuendigt) gek++;
+    if (activeFilter==='aktiv' && (a.status!=='aktiv'||a.gekuendigt)) return;
+    if (activeFilter==='inaktiv' && a.status!=='inaktiv') return;
+    if (activeFilter==='gekuendigt' && !a.gekuendigt) return;
+    if (q && !`${a.name} ${a.kat} ${a.notiz}`.toLowerCase().includes(q)) return;
+    const dk = dKlasse(a.enddatum);
+    const tr = document.createElement('tr');
+    if (a.gekuendigt) tr.classList.add('gekuendigt-row');
+    tr.innerHTML = `
+      <td class="name-cell">${a.name}</td>
+      <td class="kat-cell">${a.kat||'—'}</td>
+      <td class="preis-cell">
+        ${a.preis>0?'€ '+a.preis.toFixed(2):'<span style="color:#475569">—</span>'}
+        ${a.zyklus==='jährlich'&&a.preis>0?`<div class="sub-preis">≈ € ${mp.toFixed(2)}/Mo.</div>`:''}
+      </td>
+      <td><span class="badge ${a.zyklus==='monatlich'?'monatlich':a.zyklus==='jährlich'?'jaehrlich':''}">${a.zyklus}</span></td>
+      <td><span class="badge ${a.status}">${a.status}</span></td>
+      <td class="enddatum-cell ${dk}">${fmtDatum(a.enddatum)}${dk==='bald'?' ⚠️':dk==='abgelaufen'?' ❌':''}</td>
+      <td class="check-cell"><input type="checkbox" ${a.gekuendigt?'checked':''} onchange="quickToggle(${i},this.checked)" /></td>
+      <td class="notiz-cell">${a.notiz||''}</td>
+      <td><button class="icon-btn" onclick="openModal(${i})">✏️</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('summary').innerHTML = `
+    <div class="card"><div class="label">Aktive Abos</div><div class="value">${aktiv}</div></div>
+    <div class="card"><div class="label">Monatlich</div><div class="value">€ ${totalM.toFixed(2)}</div></div>
+    <div class="card"><div class="label">Jährlich</div><div class="value">€ ${(totalM*12).toFixed(2)}</div></div>
+    <div class="card"><div class="label">Gekündigt</div><div class="value red">${gek}</div></div>
+  `;
+  document.getElementById('status-bar').textContent = `${abos.length} Einträge gesamt`;
+}
+
+function quickToggle(i, val) { abos[i].gekuendigt = val; save(); render(); }
+
+function openModal(idx) {
+  editIdx = idx !== undefined ? idx : null;
+  const a = editIdx !== null ? abos[editIdx] : {};
+  document.getElementById('modal-title').textContent = editIdx!==null ? 'Abo bearbeiten' : 'Neues Abo';
+  document.getElementById('f-name').value = a.name||'';
+  document.getElementById('f-kat').value = a.kat||'';
+  document.getElementById('f-preis').value = a.preis>0 ? a.preis : '';
+  document.getElementById('f-zyklus').value = a.zyklus||'monatlich';
+  document.getElementById('f-status').value = a.status||'aktiv';
+  document.getElementById('f-enddatum').value = a.enddatum||'';
+  document.getElementById('f-gekuendigt').checked = a.gekuendigt||false;
+  document.getElementById('f-notiz').value = a.notiz||'';
+  document.getElementById('delete-btn').style.display = editIdx!==null ? 'inline-block' : 'none';
+  document.getElementById('modal-bg').classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(), 50);
+}
+
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+function closeBg(e) { if (e.target===document.getElementById('modal-bg')) closeModal(); }
+
+function saveEntry() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const entry = {
+    name, kat: document.getElementById('f-kat').value.trim(),
+    preis: parseFloat(document.getElementById('f-preis').value)||0,
+    zyklus: document.getElementById('f-zyklus').value,
+    status: document.getElementById('f-status').value,
+    enddatum: document.getElementById('f-enddatum').value,
+    gekuendigt: document.getElementById('f-gekuendigt').checked,
+    notiz: document.getElementById('f-notiz').value.trim(),
+  };
+  if (editIdx!==null) abos[editIdx]=entry; else abos.push(entry);
+  closeModal(); save(); render();
+}
+
+function deleteEntry() {
+  if (editIdx===null) return;
+  if (!confirm(`"${abos[editIdx].name}" wirklich löschen?`)) return;
+  abos.splice(editIdx,1); closeModal(); save(); render();
+}
+
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+load();
+</script>
+</body>
+</html>
